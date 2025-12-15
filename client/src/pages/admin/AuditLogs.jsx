@@ -126,6 +126,41 @@ const AuditLogs = () => {
     return searchStr.includes(searchTerm.toLowerCase());
   });
 
+  // Formats details object into human-readable text
+  // Converts JSON objects to friendly key-value display
+  const formatDetails = (details) => {
+    if (!details) return 'N/A';
+    if (typeof details === 'string') return details;
+
+    // Handle common detail patterns with friendly labels
+    const friendlyLabels = {
+      reportType: 'Report',
+      action: 'Action',
+      email: 'Email',
+      carId: 'Car ID',
+      bookingId: 'Booking ID',
+      userId: 'User ID',
+      brand: 'Brand',
+      model: 'Model',
+      status: 'Status',
+      amount: 'Amount',
+      reason: 'Reason'
+    };
+
+    // Convert object to readable format
+    const entries = Object.entries(details);
+    if (entries.length === 0) return 'N/A';
+
+    return entries
+      .slice(0, 3) // Show max 3 key details
+      .map(([key, value]) => {
+        const label = friendlyLabels[key] || key.replace(/([A-Z])/g, ' $1').trim();
+        const displayValue = typeof value === 'object' ? JSON.stringify(value) : value;
+        return `${label}: ${displayValue}`;
+      })
+      .join(' | ');
+  };
+
   // Formats a timestamp into separate date and time strings
   // Used for displaying timestamps in two-line format
   const formatTimestamp = (timestamp) => {
@@ -288,12 +323,10 @@ const AuditLogs = () => {
                           </td>
                           {/* Action badge */}
                           <td>{getActionBadge(log.action)}</td>
-                          {/* Details - truncated with ellipsis */}
+                          {/* Details - formatted for readability */}
                           <td>
-                            <small className="text-muted" style={{ maxWidth: '200px', display: 'block' }}>
-                              {typeof log.details === 'object'
-                                ? JSON.stringify(log.details).substring(0, 50) + '...'
-                                : log.details?.substring(0, 50) || 'N/A'}
+                            <small className="text-muted" style={{ maxWidth: '250px', display: 'block' }}>
+                              {formatDetails(log.details)}
                             </small>
                           </td>
                           {/* IP Address in monospace font */}

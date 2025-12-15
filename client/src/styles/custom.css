@@ -410,6 +410,39 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+.react-datepicker {
+  font-family: inherit;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.react-datepicker__header {
+  background: var(--primary-color);
+  border-bottom: none;
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: white;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: var(--primary-color);
+  border-radius: 50%;
+}
+
+.react-datepicker__day:hover {
+  background: rgba(37, 99, 235, 0.1);
+  border-radius: 50%;
+}
+
 /* ===== Extra Items ===== */
 .extra-item {
   border: 2px solid #e2e8f0;

@@ -112,7 +112,7 @@ const cars = [
     fuelType: 'hybrid',
     mileage: 10000,
     images: [
-      'https://images.unsplash.com/photo-1568844293986-8c1a5c53d193?w=800',
+      'https://images.unsplash.com/photo-1581540222194-0def2dda95b8?w=800',
       'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800'
     ],
     features: ['AWD', 'Bluetooth', 'Backup Camera', 'Toyota Safety Sense', 'Power Liftgate', 'Roof Rails'],
@@ -270,8 +270,8 @@ const cars = [
     fuelType: 'gasoline',
     mileage: 8000,
     images: [
-      'https://images.unsplash.com/photo-1584345604476-8ec5f82d718b?w=800',
-      'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800'
+      'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=800',
+      'https://images.unsplash.com/photo-1547744152-14d985cb937f?w=800'
     ],
     features: ['V8 Engine', 'Performance Package', 'Track Apps', 'Launch Control', 'Brembo Brakes', 'Active Exhaust'],
     description: 'The Ford Mustang GT delivers raw American muscle. Feel the thrill of 450 horsepower and iconic styling.',

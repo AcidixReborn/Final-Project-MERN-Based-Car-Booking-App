@@ -1,0 +1,30 @@
+{
+  "name": "mern-car-booking-app",
+  "version": "1.0.0",
+  "description": "A secure MERN-based car booking application with Stripe payment integration",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "server": "nodemon server/server.js",
+    "client": "npm start --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && npm install --prefix server && npm install --prefix client",
+    "seed": "node server/utils/seedData.js",
+    "build": "npm run build --prefix client"
+  },
+  "keywords": [
+    "mern",
+    "car-booking",
+    "stripe",
+    "react",
+    "node",
+    "express",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
+  }
+}

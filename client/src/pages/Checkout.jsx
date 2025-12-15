@@ -72,11 +72,49 @@ const CheckoutForm = ({ booking, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   // Error message to display to user
   const [error, setError] = useState('');
+  // Billing information state
+  const [billingInfo, setBillingInfo] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    country: 'US'
+  });
+
+  // Handle billing info field changes
+  const handleBillingChange = (e) => {
+    const { name, value } = e.target;
+    setBillingInfo(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Validate billing information before submission
+  const validateBillingInfo = () => {
+    const { name, email, phone, address, city, state, zipCode } = billingInfo;
+    if (!name.trim()) return 'Cardholder name is required';
+    if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) return 'Valid email is required';
+    if (!phone.trim() || phone.length < 10) return 'Valid phone number is required';
+    if (!address.trim()) return 'Billing address is required';
+    if (!city.trim()) return 'City is required';
+    if (!state.trim()) return 'State is required';
+    if (!zipCode.trim() || zipCode.length < 5) return 'Valid ZIP code is required';
+    return null;
+  };
 
   // Handles payment form submission
   // Creates payment intent and confirms payment with Stripe
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate billing info first
+    const validationError = validateBillingInfo();
+    if (validationError) {
+      setError(validationError);
+      toast.error(validationError);
+      return;
+    }
 
     // Ensure Stripe.js has loaded before proceeding
     if (!stripe || !elements) {
@@ -91,10 +129,22 @@ const CheckoutForm = ({ booking, onSuccess }) => {
       const intentResponse = await paymentsAPI.createIntent(booking._id);
       const { clientSecret } = intentResponse.data.data;
 
-      // Step 2: Confirm payment with Stripe using card details
+      // Step 2: Confirm payment with Stripe using card details and billing info
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement),
+          billing_details: {
+            name: billingInfo.name,
+            email: billingInfo.email,
+            phone: billingInfo.phone,
+            address: {
+              line1: billingInfo.address,
+              city: billingInfo.city,
+              state: billingInfo.state,
+              postal_code: billingInfo.zipCode,
+              country: billingInfo.country
+            }
+          }
         },
       });
 
@@ -121,10 +171,113 @@ const CheckoutForm = ({ booking, onSuccess }) => {
 
   return (
     <Form onSubmit={handleSubmit}>
+      {/* Billing Information Section */}
+      <h6 className="mb-3 text-muted">Billing Information</h6>
+
+      {/* Cardholder Name */}
+      <Form.Group className="mb-3">
+        <Form.Label>Cardholder Name <span className="text-danger">*</span></Form.Label>
+        <Form.Control
+          type="text"
+          name="name"
+          placeholder="John Doe"
+          value={billingInfo.name}
+          onChange={handleBillingChange}
+          required
+        />
+      </Form.Group>
+
+      {/* Email and Phone Row */}
+      <Row className="mb-3">
+        <Col md={6}>
+          <Form.Group>
+            <Form.Label>Email <span className="text-danger">*</span></Form.Label>
+            <Form.Control
+              type="email"
+              name="email"
+              placeholder="john@example.com"
+              value={billingInfo.email}
+              onChange={handleBillingChange}
+              required
+            />
+          </Form.Group>
+        </Col>
+        <Col md={6}>
+          <Form.Group>
+            <Form.Label>Phone <span className="text-danger">*</span></Form.Label>
+            <Form.Control
+              type="tel"
+              name="phone"
+              placeholder="(555) 123-4567"
+              value={billingInfo.phone}
+              onChange={handleBillingChange}
+              required
+            />
+          </Form.Group>
+        </Col>
+      </Row>
+
+      {/* Billing Address */}
+      <Form.Group className="mb-3">
+        <Form.Label>Billing Address <span className="text-danger">*</span></Form.Label>
+        <Form.Control
+          type="text"
+          name="address"
+          placeholder="123 Main Street"
+          value={billingInfo.address}
+          onChange={handleBillingChange}
+          required
+        />
+      </Form.Group>
+
+      {/* City, State, ZIP Row */}
+      <Row className="mb-4">
+        <Col md={5}>
+          <Form.Group>
+            <Form.Label>City <span className="text-danger">*</span></Form.Label>
+            <Form.Control
+              type="text"
+              name="city"
+              placeholder="New York"
+              value={billingInfo.city}
+              onChange={handleBillingChange}
+              required
+            />
+          </Form.Group>
+        </Col>
+        <Col md={3}>
+          <Form.Group>
+            <Form.Label>State <span className="text-danger">*</span></Form.Label>
+            <Form.Control
+              type="text"
+              name="state"
+              placeholder="NY"
+              value={billingInfo.state}
+              onChange={handleBillingChange}
+              maxLength={2}
+              required
+            />
+          </Form.Group>
+        </Col>
+        <Col md={4}>
+          <Form.Group>
+            <Form.Label>ZIP Code <span className="text-danger">*</span></Form.Label>
+            <Form.Control
+              type="text"
+              name="zipCode"
+              placeholder="10001"
+              value={billingInfo.zipCode}
+              onChange={handleBillingChange}
+              required
+            />
+          </Form.Group>
+        </Col>
+      </Row>
+
       {/* Stripe CardElement for secure card input */}
+      <h6 className="mb-3 text-muted">Card Details</h6>
       <div className="mb-4">
-        <Form.Label>Card Details</Form.Label>
-        <div className="p-3 border rounded">
+        <div className="p-3 border rounded bg-light">
           <CardElement
             options={{
               style: {

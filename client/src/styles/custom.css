@@ -58,8 +58,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-primary:hover {
   background: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
 }
 
 .btn-outline-primary {
@@ -69,7 +67,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .btn-outline-primary:hover {
   background: var(--primary-color);
-  transform: translateY(-2px);
 }
 
 /* ===== Cards ===== */
@@ -77,13 +74,7 @@ h1, h2, h3, h4, h5, h6 {
   border: none;
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-md);
-  transition: var(--transition);
   overflow: hidden;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-xl);
 }
 
 .card-img-top {
@@ -127,11 +118,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .car-card .card-img-wrapper img {
-  transition: var(--transition);
-}
-
-.car-card:hover .card-img-wrapper img {
-  transform: scale(1.1);
+  /* Image styling without hover zoom */
 }
 
 .car-card .car-type-badge {
@@ -232,11 +219,33 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== Booking Summary ===== */
 .booking-summary {
-  background: white;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   border-radius: var(--border-radius);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   position: sticky;
   top: 100px;
+  color: white;
+}
+
+.booking-summary h5 {
+  color: white;
+}
+
+.booking-summary .summary-row {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.booking-summary .summary-row span {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.booking-summary .summary-total span {
+  color: white;
+}
+
+.booking-summary .summary-total span:last-child {
+  color: #60a5fa;
+  font-size: 1.5rem;
 }
 
 .summary-row {
@@ -414,6 +423,27 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 9999 !important;
 }
 
+/* Fix for date picker being cut off by parent containers */
+.card, .search-box, .filter-card {
+  overflow: visible !important;
+  position: relative;
+}
+
+.card .card-body {
+  overflow: visible !important;
+}
+
+/* Ensure date picker container has higher stacking context */
+.react-datepicker-wrapper {
+  position: relative;
+  z-index: 100;
+}
+
+/* Lower z-index for cards that appear below the date picker */
+.card {
+  z-index: 1;
+}
+
 .react-datepicker {
   font-family: inherit;
   border: 1px solid #e2e8f0;
@@ -450,15 +480,18 @@ h1, h2, h3, h4, h5, h6 {
   padding: 1rem;
   cursor: pointer;
   transition: var(--transition);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .extra-item:hover {
   border-color: var(--primary-color);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
 }
 
 .extra-item.selected {
   border-color: var(--primary-color);
-  background: rgba(37, 99, 235, 0.05);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 /* ===== Page Header ===== */
@@ -505,14 +538,6 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===== Hover Effects ===== */
-.hover-lift {
-  transition: var(--transition);
-}
-
-.hover-lift:hover {
-  transform: translateY(-5px);
-}
-
 .hover-primary:hover {
   color: var(--primary-color) !important;
 }
@@ -601,9 +626,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: var(--shadow-md);
 }
 
-.stats-card:hover {
-  transform: translateY(-2px);
-}
+/* Stats card - no hover transform */
 
 .stats-icon {
   width: 56px;

@@ -52,11 +52,16 @@ const Booking = () => {
   const fetchAvailableCars = async () => {
     setLoading(true);
     try {
-      const response = await carsAPI.search({
+      // Build query params, excluding empty filter values
+      const queryParams = {
         startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        ...filters
-      });
+        endDate: endDate.toISOString()
+      };
+      // Only add filters that have actual values
+      if (filters.type) queryParams.type = filters.type;
+      if (filters.transmission) queryParams.transmission = filters.transmission;
+
+      const response = await carsAPI.search(queryParams);
       setAvailableCars(response.data.data.cars);
     } catch (error) {
       console.error('Error fetching cars:', error);
@@ -119,6 +124,7 @@ const Booking = () => {
                     placeholderText="Select pick-up date"
                     className="form-control"
                     dateFormat="MMM d, yyyy"
+                    portalId="datepicker-portal"
                   />
                 </Form.Group>
               </Col>
@@ -133,6 +139,7 @@ const Booking = () => {
                     placeholderText="Select return date"
                     className="form-control"
                     dateFormat="MMM d, yyyy"
+                    portalId="datepicker-portal"
                   />
                 </Form.Group>
               </Col>

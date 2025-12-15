@@ -1,14 +1,26 @@
+// ============================================
+// DATABASE SEED SCRIPT
+// Populates MongoDB with sample data for development/testing
+// Run with: node server/utils/seedData.js
+// ============================================
+
+// Mongoose ODM for MongoDB database operations
 const mongoose = require('mongoose');
+// Node.js path module for file path handling
 const path = require('path');
+// Load environment variables from .env file in project root
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env') });
 
-const Car = require('../models/Car');
-const Extra = require('../models/Extra');
-const User = require('../models/User');
+// Import models for database operations
+const Car = require('../models/Car');     // Car model for vehicle data
+const Extra = require('../models/Extra'); // Extra model for booking add-ons
+const User = require('../models/User');   // User model for test accounts
 
-// Sample car data - 15 cars across different categories
+// ============================================
+// SAMPLE CAR DATA - 15 cars across 4 categories
+// ============================================
 const cars = [
-  // Economy (4 cars)
+  // ----- Economy Cars (4) - Budget-friendly, fuel-efficient -----
   {
     brand: 'Toyota',
     model: 'Corolla',
@@ -88,7 +100,7 @@ const cars = [
     licensePlate: 'ECO-004'
   },
 
-  // SUV (4 cars)
+  // ----- SUV Cars (4) - Spacious, versatile, family-friendly -----
   {
     brand: 'Toyota',
     model: 'RAV4',
@@ -167,7 +179,7 @@ const cars = [
     licensePlate: 'SUV-004'
   },
 
-  // Luxury (4 cars)
+  // ----- Luxury Cars (4) - Premium comfort, high-end features -----
   {
     brand: 'BMW',
     model: '5 Series',
@@ -246,7 +258,7 @@ const cars = [
     licensePlate: 'LUX-004'
   },
 
-  // Sports (3 cars)
+  // ----- Sports Cars (3) - Performance, style, driving excitement -----
   {
     brand: 'Ford',
     model: 'Mustang',
@@ -307,7 +319,9 @@ const cars = [
   }
 ];
 
-// Extras/add-ons
+// ============================================
+// EXTRAS/ADD-ONS DATA - Optional booking services
+// ============================================
 const extras = [
   {
     name: 'Full Coverage Insurance',
@@ -374,7 +388,11 @@ const extras = [
   }
 ];
 
-// Admin user for testing
+// ============================================
+// TEST USER ACCOUNTS
+// ============================================
+
+// Admin user for testing admin functionality
 const adminUser = {
   name: 'Admin User',
   email: 'admin@carbooking.com',
@@ -383,7 +401,7 @@ const adminUser = {
   phone: '555-0100'
 };
 
-// Test user
+// Regular test user for testing customer functionality
 const testUser = {
   name: 'John Doe',
   email: 'john@example.com',
@@ -392,19 +410,21 @@ const testUser = {
   phone: '555-0101'
 };
 
-// Seed function
+// ============================================
+// SEED FUNCTION - Main database seeding logic
+// ============================================
 const seedDatabase = async () => {
   try {
-    // Connect to MongoDB
+    // Connect to MongoDB using URI from environment variables
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Clear existing data
+    // Clear existing car and extra data (fresh start)
     await Car.deleteMany({});
     await Extra.deleteMany({});
     console.log('Cleared existing cars and extras');
 
-    // Check if admin exists, if not create
+    // Check if admin user already exists, create if not
     const existingAdmin = await User.findOne({ email: adminUser.email });
     if (!existingAdmin) {
       await User.create(adminUser);
@@ -413,7 +433,7 @@ const seedDatabase = async () => {
       console.log('Admin user already exists');
     }
 
-    // Check if test user exists, if not create
+    // Check if test user already exists, create if not
     const existingUser = await User.findOne({ email: testUser.email });
     if (!existingUser) {
       await User.create(testUser);
@@ -422,26 +442,29 @@ const seedDatabase = async () => {
       console.log('Test user already exists');
     }
 
-    // Insert cars
+    // Insert all car documents into database
     const insertedCars = await Car.insertMany(cars);
     console.log(`${insertedCars.length} cars inserted`);
 
-    // Insert extras
+    // Insert all extra documents into database
     const insertedExtras = await Extra.insertMany(extras);
     console.log(`${insertedExtras.length} extras inserted`);
 
+    // Print summary and test credentials
     console.log('\n=== Seed Data Complete ===');
     console.log('\nTest Credentials:');
     console.log('Admin: admin@carbooking.com / admin123');
     console.log('User:  john@example.com / password123');
     console.log('\n');
 
+    // Exit successfully
     process.exit(0);
   } catch (error) {
+    // Log error and exit with failure code
     console.error('Error seeding database:', error);
     process.exit(1);
   }
 };
 
-// Run seed
+// Execute the seed function when script is run directly
 seedDatabase();

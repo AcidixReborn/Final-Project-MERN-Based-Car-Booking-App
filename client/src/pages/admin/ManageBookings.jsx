@@ -1,39 +1,63 @@
+// ============================================
+// MANAGE BOOKINGS PAGE COMPONENT
+// Admin interface for viewing and managing all customer bookings
+// ============================================
+
+// React core with useState for state management and useEffect for data fetching
 import React, { useState, useEffect } from 'react';
+// Bootstrap components for layout, tables, forms, modals, and loading indicators
 import {
   Container, Card, Table, Button, Badge, Modal,
   Form, Row, Col, Spinner, InputGroup
 } from 'react-bootstrap';
+// Icon components for search, filter, and visual elements
 import {
   FaSearch, FaEye, FaCalendarAlt, FaFilter
 } from 'react-icons/fa';
+// Toast notifications for user feedback
 import { toast } from 'react-toastify';
+// API services for booking-related HTTP requests
 import { adminAPI, bookingsAPI } from '../../services/api';
+// Admin sidebar navigation component
 import AdminSidebar from '../../components/admin/AdminSidebar';
 
+// ManageBookings component - allows admins to view and manage all bookings
 const ManageBookings = () => {
+  // Array to store all bookings from the database
   const [bookings, setBookings] = useState([]);
+  // Loading state while fetching bookings
   const [loading, setLoading] = useState(true);
+  // Currently selected booking for viewing in modal
   const [selectedBooking, setSelectedBooking] = useState(null);
+  // Controls visibility of the booking details modal
   const [showModal, setShowModal] = useState(false);
+  // Search term for filtering bookings
   const [searchTerm, setSearchTerm] = useState('');
+  // Status filter for displaying specific booking statuses
   const [statusFilter, setStatusFilter] = useState('all');
+  // Loading state during status update operations
   const [updating, setUpdating] = useState(false);
+  // Pagination state with current page, total pages, and total count
   const [pagination, setPagination] = useState({
     page: 1,
     pages: 1,
     total: 0
   });
 
+  // Fetch bookings when status filter or page changes
   useEffect(() => {
     fetchBookings();
   }, [statusFilter, pagination.page]);
 
+  // Fetches bookings from the admin API with optional status filter
+  // Updates bookings array and pagination state
   const fetchBookings = async () => {
     try {
       const params = {
         page: pagination.page,
         limit: 10
       };
+      // Only add status filter if not showing all
       if (statusFilter !== 'all') {
         params.status = statusFilter;
       }
@@ -52,38 +76,47 @@ const ManageBookings = () => {
     }
   };
 
+  // Returns a colored badge based on booking status
+  // Maps status values to Bootstrap color variants
   const getStatusBadge = (status) => {
+    // Color mapping for different booking statuses
     const colors = {
-      pending: 'warning',
-      confirmed: 'primary',
-      active: 'success',
-      completed: 'info',
-      cancelled: 'danger'
+      pending: 'warning',     // Yellow for pending
+      confirmed: 'primary',   // Blue for confirmed
+      active: 'success',      // Green for active
+      completed: 'info',      // Light blue for completed
+      cancelled: 'danger'     // Red for cancelled
     };
     return <Badge bg={colors[status] || 'secondary'}>{status}</Badge>;
   };
 
+  // Returns a colored badge based on payment status
   const getPaymentBadge = (status) => {
+    // Color mapping for different payment statuses
     const colors = {
-      pending: 'warning',
-      paid: 'success',
-      refunded: 'info',
-      failed: 'danger'
+      pending: 'warning',     // Yellow for pending payment
+      paid: 'success',        // Green for paid
+      refunded: 'info',       // Light blue for refunded
+      failed: 'danger'        // Red for failed payment
     };
     return <Badge bg={colors[status] || 'secondary'}>{status}</Badge>;
   };
 
+  // Opens the booking details modal with the selected booking
   const handleViewDetails = (booking) => {
     setSelectedBooking(booking);
     setShowModal(true);
   };
 
+  // Handles booking status change via API
+  // Updates selected booking and refreshes the list
   const handleStatusChange = async (bookingId, newStatus) => {
     setUpdating(true);
     try {
       await bookingsAPI.updateStatus(bookingId, newStatus);
       toast.success('Booking status updated');
       fetchBookings();
+      // Update selected booking status in modal
       if (selectedBooking?._id === bookingId) {
         setSelectedBooking(prev => ({ ...prev, status: newStatus }));
       }
@@ -94,12 +127,15 @@ const ManageBookings = () => {
     }
   };
 
+  // Filters bookings based on search term
+  // Searches in customer name, email, car brand, and car model
   const filteredBookings = bookings.filter(booking => {
     const searchStr = `${booking.user?.name} ${booking.user?.email} ${booking.car?.brand} ${booking.car?.model}`
       .toLowerCase();
     return searchStr.includes(searchTerm.toLowerCase());
   });
 
+  // Show loading spinner while fetching data
   if (loading) {
     return (
       <div className="admin-layout">
@@ -116,6 +152,7 @@ const ManageBookings = () => {
       <AdminSidebar />
       <div className="admin-content">
         <Container fluid>
+          {/* Page header with title and description */}
           <div className="d-flex justify-content-between align-items-center mb-4">
             <div>
               <h2 className="mb-1">Manage Bookings</h2>
@@ -123,9 +160,12 @@ const ManageBookings = () => {
             </div>
           </div>
 
+          {/* Bookings Table Card */}
           <Card>
+            {/* Search and filter controls in card header */}
             <Card.Header className="bg-white">
               <Row className="g-3 align-items-center">
+                {/* Search input */}
                 <Col md={4}>
                   <InputGroup>
                     <InputGroup.Text className="bg-light">
@@ -138,6 +178,7 @@ const ManageBookings = () => {
                     />
                   </InputGroup>
                 </Col>
+                {/* Status filter dropdown */}
                 <Col md={3}>
                   <InputGroup>
                     <InputGroup.Text className="bg-light">
@@ -159,6 +200,7 @@ const ManageBookings = () => {
                     </Form.Select>
                   </InputGroup>
                 </Col>
+                {/* Results count display */}
                 <Col md={5} className="text-md-end">
                   <span className="text-muted">
                     Showing {filteredBookings.length} of {pagination.total} bookings
@@ -167,6 +209,7 @@ const ManageBookings = () => {
               </Row>
             </Card.Header>
             <Card.Body className="p-0">
+              {/* Bookings table */}
               <Table responsive hover className="mb-0">
                 <thead className="bg-light">
                   <tr>
@@ -181,20 +224,24 @@ const ManageBookings = () => {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Render filtered bookings or empty state */}
                   {filteredBookings.length > 0 ? (
                     filteredBookings.map((booking) => (
                       <tr key={booking._id}>
+                        {/* Booking ID - shows last 8 characters */}
                         <td>
                           <small className="text-muted font-monospace">
                             {booking._id.slice(-8).toUpperCase()}
                           </small>
                         </td>
+                        {/* Customer name and email */}
                         <td>
                           <div>
                             <p className="mb-0 fw-semibold">{booking.user?.name || 'Unknown'}</p>
                             <small className="text-muted">{booking.user?.email}</small>
                           </div>
                         </td>
+                        {/* Car info with thumbnail */}
                         <td>
                           <div className="d-flex align-items-center">
                             <img
@@ -206,15 +253,20 @@ const ManageBookings = () => {
                             <span>{booking.car?.brand} {booking.car?.model}</span>
                           </div>
                         </td>
+                        {/* Booking date range */}
                         <td>
                           <small>
                             {new Date(booking.startDate).toLocaleDateString()} -<br />
                             {new Date(booking.endDate).toLocaleDateString()}
                           </small>
                         </td>
+                        {/* Total price */}
                         <td className="fw-semibold">${booking.totalPrice?.toFixed(2)}</td>
+                        {/* Booking status badge */}
                         <td>{getStatusBadge(booking.status)}</td>
+                        {/* Payment status badge */}
                         <td>{getPaymentBadge(booking.paymentStatus)}</td>
+                        {/* View details action button */}
                         <td>
                           <Button
                             variant="light"
@@ -237,9 +289,11 @@ const ManageBookings = () => {
                 </tbody>
               </Table>
             </Card.Body>
+            {/* Pagination controls */}
             {pagination.pages > 1 && (
               <Card.Footer className="bg-white">
                 <div className="d-flex justify-content-center gap-2">
+                  {/* Previous page button */}
                   <Button
                     variant="outline-primary"
                     size="sm"
@@ -248,9 +302,11 @@ const ManageBookings = () => {
                   >
                     Previous
                   </Button>
+                  {/* Current page indicator */}
                   <span className="align-self-center">
                     Page {pagination.page} of {pagination.pages}
                   </span>
+                  {/* Next page button */}
                   <Button
                     variant="outline-primary"
                     size="sm"
@@ -273,7 +329,9 @@ const ManageBookings = () => {
           <Modal.Body>
             {selectedBooking && (
               <>
+                {/* Customer and Car Information Row */}
                 <Row className="mb-4">
+                  {/* Customer information card */}
                   <Col md={6}>
                     <h6 className="text-muted mb-2">Customer Information</h6>
                     <Card className="bg-light">
@@ -284,6 +342,7 @@ const ManageBookings = () => {
                       </Card.Body>
                     </Card>
                   </Col>
+                  {/* Car information card with image */}
                   <Col md={6}>
                     <h6 className="text-muted mb-2">Car Information</h6>
                     <Card className="bg-light">
@@ -309,7 +368,9 @@ const ManageBookings = () => {
                   </Col>
                 </Row>
 
+                {/* Booking Period and Status Row */}
                 <Row className="mb-4">
+                  {/* Booking period card with pick-up and return details */}
                   <Col md={6}>
                     <h6 className="text-muted mb-2">Booking Period</h6>
                     <Card className="bg-light">
@@ -333,6 +394,7 @@ const ManageBookings = () => {
                       </Card.Body>
                     </Card>
                   </Col>
+                  {/* Current status card */}
                   <Col md={6}>
                     <h6 className="text-muted mb-2">Status</h6>
                     <Card className="bg-light">
@@ -350,13 +412,16 @@ const ManageBookings = () => {
                   </Col>
                 </Row>
 
+                {/* Pricing Breakdown Section */}
                 <h6 className="text-muted mb-2">Pricing Breakdown</h6>
                 <Card className="bg-light mb-4">
                   <Card.Body>
+                    {/* Base rate calculation */}
                     <div className="d-flex justify-content-between mb-2">
                       <span>Base Rate ({selectedBooking.pricing?.totalDays} days)</span>
                       <span>${selectedBooking.pricing?.basePrice?.toFixed(2)}</span>
                     </div>
+                    {/* Extras breakdown if any selected */}
                     {selectedBooking.extras?.length > 0 && (
                       selectedBooking.extras.map((extra, index) => (
                         <div key={index} className="d-flex justify-content-between mb-2 text-muted">
@@ -365,11 +430,13 @@ const ManageBookings = () => {
                         </div>
                       ))
                     )}
+                    {/* Tax amount */}
                     <div className="d-flex justify-content-between mb-2">
                       <span>Tax</span>
                       <span>${selectedBooking.pricing?.taxAmount?.toFixed(2)}</span>
                     </div>
                     <hr />
+                    {/* Total price */}
                     <div className="d-flex justify-content-between fw-bold">
                       <span>Total</span>
                       <span className="text-primary">${selectedBooking.totalPrice?.toFixed(2)}</span>
@@ -377,6 +444,7 @@ const ManageBookings = () => {
                   </Card.Body>
                 </Card>
 
+                {/* Notes section - only shown if notes exist */}
                 {selectedBooking.notes && (
                   <div className="mb-3">
                     <h6 className="text-muted mb-2">Notes</h6>
@@ -384,6 +452,7 @@ const ManageBookings = () => {
                   </div>
                 )}
 
+                {/* Update Status Section - buttons for changing booking status */}
                 <h6 className="text-muted mb-2">Update Status</h6>
                 <div className="d-flex flex-wrap gap-2">
                   {['pending', 'confirmed', 'active', 'completed', 'cancelled'].map((status) => (
@@ -413,4 +482,5 @@ const ManageBookings = () => {
   );
 };
 
+// Export the ManageBookings component as the default export
 export default ManageBookings;

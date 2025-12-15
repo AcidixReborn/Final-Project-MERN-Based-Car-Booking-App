@@ -1,17 +1,35 @@
+// ============================================
+// CHECKOUT PAGE COMPONENT
+// Handles extras selection and payment processing with Stripe
+// ============================================
+
+// React core with useState for state management and useEffect for validation
 import React, { useState, useEffect } from 'react';
+// Navigation hook for programmatic routing
 import { useNavigate } from 'react-router-dom';
+// Bootstrap components for layout, cards, forms, and lists
 import { Container, Row, Col, Card, Button, Form, ListGroup } from 'react-bootstrap';
+// Icon components for visual elements
 import { FaCar, FaCalendarAlt, FaShieldAlt, FaMapMarkerAlt, FaWifi, FaBaby, FaCheck, FaCreditCard } from 'react-icons/fa';
+// Stripe integration - loads Stripe.js library
 import { loadStripe } from '@stripe/stripe-js';
+// Stripe React components for payment form
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+// Toast notifications for user feedback
 import { toast } from 'react-toastify';
+// API services for booking and payment HTTP requests
 import { bookingsAPI, paymentsAPI } from '../services/api';
+// Custom hook for accessing booking context
 import { useBooking } from '../context/BookingContext';
+// Loading component for displaying loading states
 import Loading from '../components/common/Loading';
 
-// Initialize Stripe - you'll need to add your publishable key
+// Initialize Stripe with publishable key from environment variables
+// Falls back to placeholder key for development
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
 
+// Array of available rental extras with pricing and icons
+// Each extra has an ID, display name, description, daily rate, and icon
 const extras = [
   {
     _id: 'insurance',
@@ -43,15 +61,24 @@ const extras = [
   }
 ];
 
+// CheckoutForm component - handles Stripe payment submission
+// Receives booking object and success callback as props
 const CheckoutForm = ({ booking, onSuccess }) => {
+  // Stripe hook for accessing Stripe.js methods
   const stripe = useStripe();
+  // Elements hook for accessing the CardElement
   const elements = useElements();
+  // Loading state during payment processing
   const [loading, setLoading] = useState(false);
+  // Error message to display to user
   const [error, setError] = useState('');
 
+  // Handles payment form submission
+  // Creates payment intent and confirms payment with Stripe
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Ensure Stripe.js has loaded before proceeding
     if (!stripe || !elements) {
       return;
     }
@@ -60,27 +87,30 @@ const CheckoutForm = ({ booking, onSuccess }) => {
     setError('');
 
     try {
-      // Create payment intent
+      // Step 1: Create payment intent on backend
       const intentResponse = await paymentsAPI.createIntent(booking._id);
       const { clientSecret } = intentResponse.data.data;
 
-      // Confirm payment
+      // Step 2: Confirm payment with Stripe using card details
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement),
         },
       });
 
+      // Handle Stripe errors
       if (stripeError) {
         setError(stripeError.message);
         toast.error(stripeError.message);
       } else if (paymentIntent.status === 'succeeded') {
-        // Confirm payment on backend
+        // Step 3: Confirm payment on backend to update booking status
         await paymentsAPI.confirmPayment(booking._id, paymentIntent.id);
         toast.success('Payment successful!');
+        // Call success callback to navigate to confirmation page
         onSuccess(booking._id);
       }
     } catch (err) {
+      // Handle API errors
       const message = err.response?.data?.message || 'Payment failed';
       setError(message);
       toast.error(message);
@@ -91,6 +121,7 @@ const CheckoutForm = ({ booking, onSuccess }) => {
 
   return (
     <Form onSubmit={handleSubmit}>
+      {/* Stripe CardElement for secure card input */}
       <div className="mb-4">
         <Form.Label>Card Details</Form.Label>
         <div className="p-3 border rounded">
@@ -108,10 +139,12 @@ const CheckoutForm = ({ booking, onSuccess }) => {
         </div>
       </div>
 
+      {/* Error message display */}
       {error && (
         <div className="alert alert-danger py-2 mb-3">{error}</div>
       )}
 
+      {/* Submit payment button */}
       <Button
         variant="primary"
         type="submit"
@@ -121,6 +154,7 @@ const CheckoutForm = ({ booking, onSuccess }) => {
         {loading ? 'Processing...' : `Pay $${booking.totalPrice.toFixed(2)}`}
       </Button>
 
+      {/* Security note */}
       <p className="text-muted small text-center mt-3">
         <FaCreditCard className="me-1" /> Secured by Stripe. Your payment info is encrypted.
       </p>
@@ -128,16 +162,26 @@ const CheckoutForm = ({ booking, onSuccess }) => {
   );
 };
 
+// Main Checkout component - manages extras selection and payment flow
 const Checkout = () => {
+  // Navigation hook for redirecting
   const navigate = useNavigate();
+  // Destructure booking context data and methods
   const { bookingData, toggleExtra, getBasePrice, getExtrasTotal, getTax, getTotal, getTotalDays, resetBooking } = useBooking();
 
+  // Array of selected extra items
   const [selectedExtras, setSelectedExtras] = useState([]);
+  // Special requests or notes for the booking
   const [notes, setNotes] = useState('');
+  // Created booking object returned from API
   const [booking, setBooking] = useState(null);
+  // Loading state during booking creation
   const [creatingBooking, setCreatingBooking] = useState(false);
-  const [step, setStep] = useState(1); // 1: extras, 2: payment
+  // Current checkout step: 1 = extras selection, 2 = payment
+  const [step, setStep] = useState(1);
 
+  // Validate that car and dates are selected on mount
+  // Redirect to booking page if missing required data
   useEffect(() => {
     if (!bookingData.selectedCar || !bookingData.dates.startDate || !bookingData.dates.endDate) {
       toast.warning('Please select a car and dates first');
@@ -145,6 +189,8 @@ const Checkout = () => {
     }
   }, [bookingData, navigate]);
 
+  // Toggles an extra item in the selected extras array
+  // Adds if not present, removes if already selected
   const handleToggleExtra = (extra) => {
     setSelectedExtras(prev => {
       const exists = prev.find(e => e._id === extra._id);
@@ -155,18 +201,22 @@ const Checkout = () => {
     });
   };
 
+  // Calculates total cost of all selected extras
+  // Multiplies each extra's daily rate by number of days
   const calculateExtrasTotal = () => {
     return selectedExtras.reduce((total, extra) => total + (extra.pricePerDay * getTotalDays()), 0);
   };
 
+  // Calculates the grand total including base price, extras, and tax
   const calculateTotal = () => {
     const basePrice = getBasePrice();
     const extrasTotal = calculateExtrasTotal();
     const subtotal = basePrice + extrasTotal;
-    const tax = subtotal * 0.10;
+    const tax = subtotal * 0.10; // 10% tax rate
     return subtotal + tax;
   };
 
+  // Creates the booking on the server and advances to payment step
   const handleProceedToPayment = async () => {
     setCreatingBooking(true);
     try {
@@ -178,7 +228,7 @@ const Checkout = () => {
         notes
       });
       setBooking(response.data.data.booking);
-      setStep(2);
+      setStep(2); // Advance to payment step
     } catch (error) {
       toast.error(error.response?.data?.message || 'Error creating booking');
     } finally {
@@ -186,19 +236,23 @@ const Checkout = () => {
     }
   };
 
+  // Handles successful payment - resets booking context and navigates to confirmation
   const handlePaymentSuccess = (bookingId) => {
     resetBooking();
     navigate(`/confirmation/${bookingId}`);
   };
 
+  // Show loading screen if car data is not available
   if (!bookingData.selectedCar) {
     return <Loading fullScreen />;
   }
 
+  // Reference to selected car for easier access
   const car = bookingData.selectedCar;
 
   return (
     <>
+      {/* Page Header with step indicator */}
       <div className="page-header">
         <Container>
           <h1 className="mb-2">Checkout</h1>
@@ -210,14 +264,17 @@ const Checkout = () => {
 
       <Container className="py-4">
         <Row>
+          {/* Main Content Column */}
           <Col lg={8}>
             {step === 1 ? (
+              // Step 1: Extras Selection and Review
               <>
-                {/* Selected Car */}
+                {/* Selected Car Summary Card */}
                 <Card className="mb-4">
                   <Card.Body>
                     <h5 className="mb-3"><FaCar className="me-2" /> Selected Vehicle</h5>
                     <Row>
+                      {/* Car image */}
                       <Col md={4}>
                         <img
                           src={car.images?.[0] || 'https://via.placeholder.com/200x150?text=Car'}
@@ -225,22 +282,26 @@ const Checkout = () => {
                           className="img-fluid rounded"
                         />
                       </Col>
+                      {/* Car details and dates */}
                       <Col md={8}>
                         <h4 className="mb-2">{car.brand} {car.model}</h4>
                         <p className="text-muted mb-2">{car.year} | {car.transmission} | {car.seats} seats</p>
                         <div className="d-flex gap-3">
+                          {/* Pick-up date display */}
                           <div>
                             <small className="text-muted">Pick-up</small>
                             <p className="mb-0 fw-semibold">
                               {bookingData.dates.startDate?.toLocaleDateString()}
                             </p>
                           </div>
+                          {/* Return date display */}
                           <div>
                             <small className="text-muted">Return</small>
                             <p className="mb-0 fw-semibold">
                               {bookingData.dates.endDate?.toLocaleDateString()}
                             </p>
                           </div>
+                          {/* Duration display */}
                           <div>
                             <small className="text-muted">Duration</small>
                             <p className="mb-0 fw-semibold">{getTotalDays()} days</p>
@@ -251,11 +312,12 @@ const Checkout = () => {
                   </Card.Body>
                 </Card>
 
-                {/* Extras */}
+                {/* Extras Selection Card */}
                 <Card className="mb-4">
                   <Card.Body>
                     <h5 className="mb-3">Add Extras</h5>
                     <Row className="g-3">
+                      {/* Render each available extra as a clickable card */}
                       {extras.map((extra) => {
                         const isSelected = selectedExtras.some(e => e._id === extra._id);
                         return (
@@ -266,14 +328,17 @@ const Checkout = () => {
                             >
                               <div className="d-flex justify-content-between align-items-start">
                                 <div className="d-flex">
+                                  {/* Extra icon */}
                                   <div className="feature-icon me-3">
                                     {extra.icon}
                                   </div>
+                                  {/* Extra name and description */}
                                   <div>
                                     <h6 className="mb-1">{extra.name}</h6>
                                     <p className="text-muted small mb-0">{extra.description}</p>
                                   </div>
                                 </div>
+                                {/* Price and selected indicator */}
                                 <div className="text-end">
                                   <p className="fw-bold text-primary mb-0">${extra.pricePerDay}/day</p>
                                   {isSelected && <FaCheck className="text-success mt-1" />}
@@ -287,7 +352,7 @@ const Checkout = () => {
                   </Card.Body>
                 </Card>
 
-                {/* Notes */}
+                {/* Special Requests Card */}
                 <Card className="mb-4">
                   <Card.Body>
                     <h5 className="mb-3">Special Requests (Optional)</h5>
@@ -301,6 +366,7 @@ const Checkout = () => {
                   </Card.Body>
                 </Card>
 
+                {/* Proceed to Payment Button */}
                 <Button
                   variant="primary"
                   size="lg"
@@ -312,14 +378,16 @@ const Checkout = () => {
                 </Button>
               </>
             ) : (
+              // Step 2: Payment Form
               <Card>
                 <Card.Body className="p-4">
                   <h5 className="mb-4"><FaCreditCard className="me-2" /> Payment</h5>
+                  {/* Stripe Elements provider wrapping the checkout form */}
                   <Elements stripe={stripePromise}>
                     <CheckoutForm booking={booking} onSuccess={handlePaymentSuccess} />
                   </Elements>
 
-                  {/* Test Card Info */}
+                  {/* Test Card Information for Development */}
                   <div className="mt-4 p-3 bg-light rounded">
                     <p className="small text-muted mb-2">
                       <strong>Test Card Numbers:</strong>
@@ -336,17 +404,19 @@ const Checkout = () => {
             )}
           </Col>
 
-          {/* Order Summary */}
+          {/* Order Summary Sidebar */}
           <Col lg={4}>
             <Card className="booking-summary">
               <Card.Body className="p-4">
                 <h5 className="mb-4">Booking Summary</h5>
 
+                {/* Base rental rate */}
                 <div className="summary-row">
                   <span>Base Rate ({getTotalDays()} days)</span>
                   <span>${getBasePrice().toFixed(2)}</span>
                 </div>
 
+                {/* Selected extras breakdown */}
                 {selectedExtras.length > 0 && (
                   <>
                     <p className="fw-semibold mb-2 mt-3">Extras</p>
@@ -359,11 +429,13 @@ const Checkout = () => {
                   </>
                 )}
 
+                {/* Tax calculation (10%) */}
                 <div className="summary-row">
                   <span>Tax (10%)</span>
                   <span>${((getBasePrice() + calculateExtrasTotal()) * 0.10).toFixed(2)}</span>
                 </div>
 
+                {/* Grand total */}
                 <div className="summary-row summary-total border-top pt-3 mt-3">
                   <span>Total</span>
                   <span>${calculateTotal().toFixed(2)}</span>
@@ -377,4 +449,5 @@ const Checkout = () => {
   );
 };
 
+// Export the Checkout component as the default export
 export default Checkout;

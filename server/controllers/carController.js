@@ -125,36 +125,71 @@ const searchCars = asyncHandler(async (req, res) => {
     if (maxPrice) query.pricePerDay.$lte = parseFloat(maxPrice);
   }
 
-  // Get all cars matching filter criteria
-  let cars = await Car.find(query);
+  // Pagination parameters
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
 
-  // If dates provided, filter out cars with overlapping bookings
+  let cars;
+  let total;
+
+  // If dates provided, use optimized aggregation pipeline to filter out unavailable cars
+  // This is O(n log m) instead of O(n * m) - much more efficient for large datasets
   if (startDate && endDate) {
-    // Parse date strings to Date objects
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // Find all cars that have overlapping active bookings
-    const overlappingBookings = await Booking.find({
-      status: { $in: ['pending', 'confirmed', 'active'] },
-      $or: [
-        { startDate: { $lte: end }, endDate: { $gte: start } }
-      ]
-    }).distinct('car');
+    // Use MongoDB aggregation with $lookup for efficient filtering
+    // This performs the join on the database server instead of in-memory
+    const pipeline = [
+      // Stage 1: Match cars based on filters
+      { $match: query },
+      // Stage 2: Lookup overlapping bookings for each car
+      {
+        $lookup: {
+          from: 'bookings',
+          let: { carId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$car', '$$carId'] },
+                status: { $in: ['pending', 'confirmed', 'active'] },
+                startDate: { $lte: end },
+                endDate: { $gte: start }
+              }
+            },
+            { $limit: 1 } // Only need to know if at least one exists
+          ],
+          as: 'conflicts'
+        }
+      },
+      // Stage 3: Keep only cars with no conflicts
+      { $match: { conflicts: { $size: 0 } } },
+      // Stage 4: Remove the conflicts field from output
+      { $project: { conflicts: 0 } }
+    ];
 
-    // Remove cars with overlapping bookings from results
-    cars = cars.filter(car =>
-      !overlappingBookings.some(bookedCarId =>
-        bookedCarId.toString() === car._id.toString()
-      )
+    // Get total count using a separate aggregation (for pagination)
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await Car.aggregate(countPipeline);
+    total = countResult.length > 0 ? countResult[0].total : 0;
+
+    // Add pagination to main pipeline
+    pipeline.push(
+      { $skip: (pageNum - 1) * limitNum },
+      { $limit: limitNum }
     );
+
+    cars = await Car.aggregate(pipeline);
+  } else {
+    // No date filtering needed - use simple find with skip/limit
+    // This is O(log n) with proper indexes
+    total = await Car.countDocuments(query);
+    cars = await Car.find(query)
+      .skip((pageNum - 1) * limitNum)
+      .limit(limitNum);
   }
 
-  // Apply pagination to filtered results
-  const pageNum = parseInt(page);
-  const limitNum = parseInt(limit);
-  const total = cars.length;
-  const paginatedCars = cars.slice((pageNum - 1) * limitNum, pageNum * limitNum);
+  const paginatedCars = cars;
 
   // Return search results with pagination
   res.status(200).json({

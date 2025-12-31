@@ -168,6 +168,99 @@ Use Stripe test card numbers for payment testing:
 - Success: `4242 4242 4242 4242`
 - Decline: `4000 0000 0000 0002`
 
+---
+
+## Testing and Quality Assurance
+
+### AI-Driven Testing with testRigor
+
+This application was tested using testRigor, a no-code AI-powered testing platform that enables natural language test creation.
+
+#### Test Cases Executed
+
+1. **User Authentication Tests**
+   - User registration with valid credentials - PASS
+   - User login with correct email/password - PASS
+   - Login failure with invalid credentials - PASS
+   - Password validation requirements - PASS
+
+2. **Car Browsing and Search Tests**
+   - Display all available cars - PASS
+   - Filter cars by type (SUV, Sedan, Luxury) - PASS
+   - Filter cars by transmission (Automatic/Manual) - PASS
+   - Filter cars by price range - PASS
+   - Search cars by date availability - PASS
+
+3. **Booking Flow Tests**
+   - Select car and booking dates - PASS
+   - Add extras (GPS, Insurance, Child Seat) - PASS
+   - Calculate total price correctly - PASS
+   - Complete checkout process - PASS
+
+4. **Payment Processing Tests**
+   - Stripe payment intent creation - PASS
+   - Test card payment (4242 4242 4242 4242) - PASS
+   - Payment confirmation and booking creation - PASS
+   - Payment failure handling - PASS
+
+5. **Admin Dashboard Tests**
+   - Admin login and access - PASS
+   - View dashboard statistics - PASS
+   - Manage cars (create, update, delete) - PASS
+   - View and manage bookings - PASS
+   - View audit logs - PASS
+
+### Algorithm Efficiency Analysis (Big O)
+
+| Operation | Complexity | Status |
+|-----------|------------|--------|
+| Get all cars (with filters) | O(log n) | Optimized with indexes |
+| Check car availability | O(log n) | Compound index on dates |
+| Create booking | O(log n) | Efficient overlap detection |
+| Calculate average rating | O(r log r) | Aggregation pipeline |
+| Dashboard statistics | O(n log n) | Server-side aggregation |
+| Search cars with dates | O(n log m) | Optimized with $lookup aggregation |
+
+### Database Indexing Strategy
+
+Optimized indexes implemented for performance:
+
+- **Cars Collection:**
+  - Text index on brand, model, description
+  - Compound index on type, pricePerDay, available
+
+- **Bookings Collection:**
+  - Index on user + status
+  - Compound index on car + startDate + endDate
+  - Index on status + createdAt
+
+- **Audit Logs Collection:**
+  - Index on userId + createdAt
+  - Index on action + createdAt
+
+### Security Testing Results
+
+| Security Feature | Status |
+|-----------------|--------|
+| JWT authentication | PASS |
+| Password hashing (bcrypt) | PASS |
+| Rate limiting (100 req/15min) | PASS |
+| CORS configuration | PASS |
+| Helmet security headers | PASS |
+| Input sanitization | PASS |
+| Audit logging (25+ action types) | PASS |
+
+---
+
+## Test Credentials
+
+For testing the application:
+
+- **Admin Account:** admin@carbooking.com / admin123
+- **User Account:** john@example.com / password123
+
+---
+
 ## License
 
 MIT
